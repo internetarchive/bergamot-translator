@@ -5,6 +5,22 @@
 
 Bergamot translator provides a unified API for ([Marian NMT](https://marian-nmt.github.io/) framework based) neural machine translation functionality in accordance with the [Bergamot](https://browser.mt/) project that focuses on improving client-side machine translation in a web browser.
 
+> [!NOTE]
+> To release the npm package of this fork:
+>
+> ```bash
+> npm --prefix wasm/module/ version prerelease --preid=ia
+> NEW_VERSION=$(npm pkg get version --prefix wasm/module | tr -d '"')
+> git add wasm/module/package.json
+> git commit -m "v$NEW_VERSION"
+> git tag "v$NEW_VERSION"
+> git push origin main --tags
+> ```
+>
+> The pushing of this tag will trigger the CI to build the WASM module and publish it to npm.
+> This creates versions like `0.4.9-ia.0`. This lets us easily "rebase" if the original Bergamot Translator releases a new version.
+>
+
 ## Build Instructions
 
 ### Build Natively

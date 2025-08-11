@@ -1,6 +1,6 @@
 {
   "name": "@internetarchive/bergamot-translator",
-  "version": "0.0.0",
+  "version": "0.4.9-ia.0",
   "description": "Cross platform C++ library focusing on optimized machine translation on the consumer-grade device.",
   "homepage": "https://github.com/internetarchive/bergamot-translator#readme",
   "repository": {
