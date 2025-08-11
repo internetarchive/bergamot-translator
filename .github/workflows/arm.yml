@@ -1,12 +1,16 @@
 name: ARM
-'on':
-  push:
-    branches:
-    - main
-    - ci-sandbox
-  pull_request:
-    branches:
-    - '**'
+on: {}
+# Disable on this fork
+# 'on':
+#   push:
+#     branches:
+#     - main
+#     - ci-sandbox
+#   pull_request:
+#     branches:
+#     - '**'
+permissions:
+  contents: read
 env:
   ccache_basedir: ${{ github.workspace }}
   ccache_dir: "${{ github.workspace }}/.ccache"

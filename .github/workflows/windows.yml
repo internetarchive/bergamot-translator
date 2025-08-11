@@ -1,10 +1,14 @@
 name: Windows
+on: {}
+# Disable on this fork
+# on:
+#   push:
+#     branches: [ main, ci-sandbox ]
+#   pull_request:
+#     branches: [ '**' ]
 
-on:
-  push:
-    branches: [ main, ci-sandbox ]
-  pull_request:
-    branches: [ '**' ]
+permissions:
+  contents: read
 
 env:
   MKL_URL: "https://data.statmt.org/romang/marian-regression-tests/ci/mkl-2020.1-windows-static.zip"
