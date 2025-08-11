@@ -34,7 +34,7 @@ jobs:
     #   runs-on: ${{ matrix.os }}
 
     #   steps:
-    #     - uses: actions/checkout@v2
+    #     - uses: actions/checkout@v5
     #       with:
     #         submodules: recursive
 
@@ -169,7 +169,7 @@ jobs:
       steps:
 
         - name: Checkout
-          uses: actions/checkout@v2
+          uses: actions/checkout@v5
           with:
             submodules: recursive
 
@@ -373,7 +373,7 @@ jobs:
       runs-on: "ubuntu-latest"
       steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
         with:
           submodules: recursive
       - name: Install Dependencies
@@ -393,7 +393,7 @@ jobs:
     #   needs: [build-wheels]
     #   steps:
     #     - name: Checkout
-    #       uses: actions/checkout@v2
+    #       uses: actions/checkout@v5
     #       with:
     #         submodules: recursive
 
