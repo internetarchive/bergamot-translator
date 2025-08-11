@@ -137,7 +137,7 @@ jobs:
     #           python3 -m bergamot translate --model eng-fin-tiny --repository opus <<< "Hello World"
 
 
-    #     - uses: actions/upload-artifact@v2
+    #     - uses: actions/upload-artifact@v4
     #       with:
     #         name: wheels
     #         path: ./wheelhouse/*.whl
@@ -275,7 +275,7 @@ jobs:
 
         # Upload both together.
         - name: Upload wasm artifact
-          uses: actions/upload-artifact@v2
+          uses: actions/upload-artifact@v4
           with:
             name: wasm-artefacts
             if-no-files-found: error
@@ -465,7 +465,7 @@ jobs:
     #     # For use for maintainers to download the zip and check render of
     #     # documentation while generated at pull-request.
     #     - name: Upload documentation
-    #       uses: actions/upload-artifact@v2
+    #       uses: actions/upload-artifact@v4
     #       if: ${{ github.event_name == 'pull_request'}}
     #       with:
     #         name: api-docs
