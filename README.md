@@ -14,7 +14,10 @@ Bergamot translator provides a unified API for ([Marian NMT](https://marian-nmt.
 > git add wasm/module/package.json
 > git commit -m "v$NEW_VERSION"
 > git tag "v$NEW_VERSION"
-> git push origin main --tags
+> git push origin "v$NEW_VERSION"
+> # Wait a moment and confirm the CI has started for the tag at https://github.com/internetarchive/bergamot-translator/actions/workflows/build.yml
+> # This is necessary otherwise the npm package will not be published.
+> git push origin main
 > ```
 >
 > The pushing of this tag will trigger the CI to build the WASM module and publish it to npm.
