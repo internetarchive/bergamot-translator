@@ -1,8 +1,10 @@
 name: "Coding Style"
 
 # Disable for this fork -- for now; it's failing
-on: {}
-
+on: 
+  push:
+    branches:
+      - ia-disabled-never
 # on:
 #   push:
 #     branches: [ main, ci-sandbox ]

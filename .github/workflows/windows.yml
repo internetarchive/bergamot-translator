@@ -1,6 +1,10 @@
 name: Windows
-on: {}
+
 # Disable on this fork
+on: 
+  push:
+    branches:
+      - ia-disabled-never
 # on:
 #   push:
 #     branches: [ main, ci-sandbox ]
