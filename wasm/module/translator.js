@@ -213,9 +213,10 @@ export class CancelledError extends Error {}
 
         // Add 'from' and 'to' keys for each model.
         return Array.from(Object.entries(registry), ([key, files]) => {
+            const languages = key.match(/^([a-z]{2}(-[a-z]+)?)([a-z]{2}(-[a-z]+)?)/i);
             return {
-                from: key.substring(0, 2),
-                to: key.substring(2, 4),
+                from: languages[1],
+                to: languages[3],
                 files
             }
         });
