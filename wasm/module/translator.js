@@ -67,6 +67,7 @@ export class CancelledError extends Error {}
      *  registryUrl?: string
      *  pivotLanguage?: string?
      *  onerror?: (err: Error)
+     *  onmodelprogress?: (progress: {from: string, to: string, loaded: number, total: number})
      * }} options
      */
     constructor(options) {
@@ -105,6 +106,12 @@ export class CancelledError extends Error {}
          * @type {(error: Error)}
          */
         this.onerror = this.options.onerror || (err => console.error('WASM Translation Worker error:', err));
+
+        /**
+         * Called with download progress while a model's files are fetched.
+         * @type {((progress: {from: string, to: string, loaded: number, total: number}) => void)?}
+         */
+        this.onmodelprogress = this.options.onmodelprogress || null;
     }
 
     /**
@@ -168,8 +175,9 @@ export class CancelledError extends Error {}
         worker.addEventListener('error', this.onerror.bind(this));
 
         // Await initialisation. This will also nicely error out if the WASM
-        // runtime fails to load.
-        await call('initialize', this.options);
+        // runtime fails to load. Callbacks like `onerror` can't be sent to the worker.
+        const workerOptions = Object.fromEntries(Object.entries(this.options).filter(([, value]) => typeof value !== 'function'));
+        await call('initialize', workerOptions);
 
         /**
          * Little wrapper around the message passing api of Worker to make it
@@ -274,13 +282,26 @@ export class CancelledError extends Error {}
 
         const files = entries[0].files;
 
-        const abort = () => reject(new CancelledError('abort signal'));
+        let abort;
 
         // Promise that resolves (or rejects really) when the abort signal hits
         const escape = new Promise((accept, reject) => {
+            abort = () => reject(new CancelledError('abort signal'));
             if (options?.signal)
                 options.signal.addEventListener('abort', abort);
         });
+
+        // Report combined progress across all files of this model
+        let onprogress = null;
+        if (this.onmodelprogress) {
+            const loadedByPart = {};
+            const total = Object.values(files).reduce((sum, file) => sum + (file?.name ? file.size || 0 : 0), 0);
+            onprogress = (part, loaded) => {
+                loadedByPart[part] = loaded;
+                const loadedTotal = Object.values(loadedByPart).reduce((sum, n) => sum + n, 0);
+                this.onmodelprogress({from, to, loaded: loadedTotal, total});
+            };
+        }
 
         // Download all files mentioned in the registry entry. Race the promise
         // of all fetch requests, and a promise that rejects on the abort signal
@@ -292,7 +313,8 @@ export class CancelledError extends Error {}
                     return [part, null];
 
                 try {
-                    return [part, await this.fetch(file.name, file.expectedSha256Hash, options)];
+                    const fetchOptions = onprogress ? {...options, onprogress: loaded => onprogress(part, loaded)} : options;
+                    return [part, await this.fetch(file.name, file.expectedSha256Hash, fetchOptions)];
                 } catch (cause) {
                     throw new Error(`Could not fetch ${file.name} for ${from}->${to} model`, {cause});
                 }
@@ -346,7 +368,7 @@ export class CancelledError extends Error {}
      * Helper to download file from the web. Verifies the checksum.
      * @param {string} url
      * @param {string?} checksum sha256 checksum as hexadecimal string
-     * @param {{signal:AbortSignal}?} extra fetch options
+     * @param {{signal:AbortSignal, onprogress?:(loaded:number)}?} extra fetch options
      * @returns {Promise<ArrayBuffer>}
      */
     async fetch(url, checksum, extra) {
@@ -366,6 +388,11 @@ export class CancelledError extends Error {}
                 signal: controller.signal,
             };
 
+            // With `integrity`, fetch() only resolves once the whole body is
+            // downloaded, so to report progress we stream and verify ourselves.
+            if (extra?.onprogress)
+                return await this.fetchWithProgress(url, checksum, options, extra.onprogress);
+
             if (checksum)
                 options['integrity'] = `sha256-${this.hexToBase64(checksum)}`;
 
@@ -375,7 +402,7 @@ export class CancelledError extends Error {}
                 delete options['integrity'];
 
             // Start downloading the url, using the hex checksum to ask
-            // `fetch()` to verify the download using subresource integrity 
+            // `fetch()` to verify the download using subresource integrity
             const response = await fetch(url, options);
 
             // Finish downloading (or crash due to timeout)
@@ -388,6 +415,50 @@ export class CancelledError extends Error {}
             if (extra?.signal)
                 extra.signal.removeEventListener('abort', abort);
         }
+    }
+
+    /**
+     * Like fetch(), but reads the body as a stream, calling `onprogress` with
+     * the number of bytes received so far, and verifies the sha256 checksum.
+     * @param {string} url
+     * @param {string?} checksum sha256 checksum as hexadecimal string
+     * @param {RequestInit} options
+     * @param {(loaded:number)} onprogress
+     * @returns {Promise<ArrayBuffer>}
+     */
+    async fetchWithProgress(url, checksum, options, onprogress) {
+        const response = await fetch(url, options);
+        if (!response.ok)
+            throw new Error(`HTTP ${response.status} for ${url}`);
+
+        const reader = response.body.getReader();
+        const chunks = [];
+        let loaded = 0;
+        onprogress(loaded);
+        while (true) {
+            const {done, value} = await reader.read();
+            if (done)
+                break;
+            chunks.push(value);
+            loaded += value.byteLength;
+            onprogress(loaded);
+        }
+
+        const bytes = new Uint8Array(loaded);
+        let offset = 0;
+        for (const chunk of chunks) {
+            bytes.set(chunk, offset);
+            offset += chunk.byteLength;
+        }
+
+        if (checksum) {
+            const digest = await crypto.subtle.digest('SHA-256', bytes);
+            const hex = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+            if (hex !== checksum.toLowerCase())
+                throw new Error(`Checksum mismatch for ${url}`);
+        }
+
+        return bytes.buffer;
     }
 
     /**
